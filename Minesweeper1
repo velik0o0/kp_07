@@ -1,0 +1,265 @@
+/**
+ *
+ *Solution to course project # 7
+ *Introduction to programming course
+ *Faculty of Mathematics and Informatics of Sofia University
+ *Winter semester 2022/2023
+ *
+ *@author Veliko Fotev
+ *@idnumber 2MI0600142 *@compiler VC
+ *
+ *Minesweeper game code
+ *
+ */
+#include <iostream>
+#include <ctime>
+using namespace std;
+
+const int BOARD_MAX_SIZE = 10;
+
+bool IsCharNumber(char symbol)
+{
+	return (symbol >= '0' && symbol <= '9');
+
+}
+
+bool isNumberInCertainRange(int number, int start, int end)
+{
+	return number >= start && number <= end;
+}
+
+void SpawnMines(int mines, int sizeOfBoard, char board[BOARD_MAX_SIZE][BOARD_MAX_SIZE])
+{
+	srand(time(NULL));
+
+	while (mines != 0)
+	{
+		int firstRandomCoordinate = rand() % sizeOfBoard;
+		int secondRandomCoordinate = rand() % sizeOfBoard;
+
+		if (board[firstRandomCoordinate][secondRandomCoordinate] != 'B')
+		{
+			board[firstRandomCoordinate][secondRandomCoordinate] = 'B';
+			mines--;
+		}
+	}
+}
+
+void printBoard(int sizeOfBoard, const char board[BOARD_MAX_SIZE][BOARD_MAX_SIZE])
+{
+	cout << "   ";
+	for (int k = 0; k < sizeOfBoard; k++) cout << k << "  ";
+	cout << endl;
+	for (size_t i = 0; i < sizeOfBoard; i++)
+	{
+		cout << i << " ";
+		for (size_t j = 0; j < sizeOfBoard; j++)
+		{
+			cout << ' ' << board[i][j] << ' ';
+		}
+
+		cout << endl;
+	}
+}
+
+void printBoardWithMines(int sizeOfBoard,
+	char revealedBoard[BOARD_MAX_SIZE][BOARD_MAX_SIZE], char board[BOARD_MAX_SIZE][BOARD_MAX_SIZE])
+{
+	cout << "   ";
+	for (int k = 0; k < sizeOfBoard; k++) cout << k << "  ";
+	cout << endl;
+
+	for (size_t i = 0; i < sizeOfBoard; i++)
+	{
+		cout << i << " ";
+		for (size_t j = 0; j < sizeOfBoard; j++)
+		{
+			if (board[i][j] == 'B') revealedBoard[i][j] = 'B';
+			cout << ' ' << revealedBoard[i][j] << ' ';
+		}
+
+		cout << endl;
+	}
+}
+
+void initBoard(char board[BOARD_MAX_SIZE][BOARD_MAX_SIZE], int sizeOfBoard)
+{
+	for (size_t i = 0; i < sizeOfBoard; i++)
+	{
+		for (size_t j = 0; j < sizeOfBoard; j++)
+		{
+			board[i][j] = '-';
+		}
+	}
+}
+
+int countSurroundingMines(int firstCoordinate, int secondCoordinate, int sizeOfBoard, const char board[BOARD_MAX_SIZE][BOARD_MAX_SIZE])
+{
+	int value = 0;
+	for (int i = -1; i < 2; i++)
+	{
+		for (int j = -1; j < 2; j++)
+		{
+			if (board[firstCoordinate + i][secondCoordinate + j] == 'B')
+				value++;
+		}
+	}
+
+	return value;
+
+}
+
+void ClearNeighbourCells(int firstCoordinate, int secondCoordinate, int sizeOfBoard,
+	char board[BOARD_MAX_SIZE][BOARD_MAX_SIZE],
+	char revealedBoard[BOARD_MAX_SIZE][BOARD_MAX_SIZE],
+	int& openedCells)
+{
+	revealedBoard[firstCoordinate][secondCoordinate] = ' ';
+	openedCells++;
+	int currentMines = 0;
+	int value = 0;
+	for (int i = -1; i < 2; i++)
+	{
+		for (int j = -1; j < 2; j++)
+		{
+			if ((firstCoordinate + i >= 0 && firstCoordinate + i < sizeOfBoard) &&
+				(secondCoordinate + i >= 0 || secondCoordinate + i < sizeOfBoard))
+				if (revealedBoard[firstCoordinate + i][secondCoordinate + j] == '-')
+				{
+					currentMines = countSurroundingMines(firstCoordinate + i, secondCoordinate + j, sizeOfBoard, board);
+					if (currentMines == 0)
+					{
+						ClearNeighbourCells(firstCoordinate + i, secondCoordinate + j, sizeOfBoard, board, revealedBoard, openedCells);
+					}
+					else
+					{
+						revealedBoard[firstCoordinate + i][secondCoordinate + j] = currentMines + '0';
+						openedCells++;
+					}
+				}
+		}
+	}
+}
+
+bool areCoordinatesValid(int firstCoordinate, int secondCoordinate, int size)
+{
+	return isNumberInCertainRange(firstCoordinate, 0, size - 1) && isNumberInCertainRange(secondCoordinate, 0, size - 1);
+}
+
+int main()
+{
+	int SizeOfBoard, mines;
+	cout << "Enter board size(between 3 and 10): ";
+	cin >> SizeOfBoard;
+	//Accepts only integers
+	while (!isNumberInCertainRange(SizeOfBoard, 3, 10))
+	{
+		cout << "Invalid input! Enter new one: ";
+		cin >> SizeOfBoard;
+	}
+
+	int minesMaxCount = 3 * SizeOfBoard;
+	cout << "Enter mines count(between 3 and" << " " << minesMaxCount << "):";
+	cin >> mines;
+	while (!isNumberInCertainRange(mines, 3, minesMaxCount))
+	{
+		cout << "Invalid input! Enter new one: ";
+		cin >> mines;
+	}
+
+	char board[BOARD_MAX_SIZE][BOARD_MAX_SIZE];
+	SpawnMines(mines, SizeOfBoard, board);
+
+	char revealedBoard[BOARD_MAX_SIZE][BOARD_MAX_SIZE];
+	initBoard(revealedBoard, SizeOfBoard);
+	printBoard(SizeOfBoard, revealedBoard);
+
+	bool isGameStillOn = true;
+	int openedPlaces = 0;
+	int winCondition = (SizeOfBoard * SizeOfBoard) - mines;
+	while (isGameStillOn)
+	{
+		char command;
+		int firstCoordinate = 0;
+		int secondCoordinate = 0;
+		cout << "Enter \"o\" to open a cell, \"m\"to mark a cell or \"u\" to unmark, and the coordinates of the cell(row and column): ";
+		cin >> command >> firstCoordinate >> secondCoordinate;
+
+		if (!areCoordinatesValid(firstCoordinate, secondCoordinate, SizeOfBoard))
+		{
+			cout << "Invalid coordinates! Try again!" << endl;
+			continue;
+		}
+
+		if (command == 'o')
+		{
+			if (revealedBoard[firstCoordinate][secondCoordinate] == 'M')
+			{
+				cout << "You cannot open a marked cell!" << endl;
+				continue;
+			}
+
+			if (revealedBoard[firstCoordinate][secondCoordinate] != '-')
+			{
+				cout << "Already opened!" << endl;
+				continue;
+			}
+
+			if (board[firstCoordinate][secondCoordinate] == 'B')
+			{
+				cout << "Game over, you hit a mine!" << endl;
+
+				printBoardWithMines(SizeOfBoard, revealedBoard, board);
+				break;
+			}
+
+			int minesAround = countSurroundingMines(firstCoordinate, secondCoordinate, SizeOfBoard, board);
+			if (minesAround != 0)
+			{
+				revealedBoard[firstCoordinate][secondCoordinate] = minesAround + '0';
+				openedPlaces++;
+			}
+			else
+			{
+				ClearNeighbourCells(firstCoordinate, secondCoordinate, SizeOfBoard, board, revealedBoard, openedPlaces);
+			}
+		}
+		else if (command == 'm')
+		{
+			if (revealedBoard[firstCoordinate][secondCoordinate] != '-')
+			{
+				cout << "Already marked or opened!" << endl;
+				continue;
+			}
+
+			revealedBoard[firstCoordinate][secondCoordinate] = 'M';
+		}
+		else if (command == 'u')
+		{
+			if (revealedBoard[firstCoordinate][secondCoordinate] == 'M')
+			{
+				revealedBoard[firstCoordinate][secondCoordinate] = '-';
+			}
+			else
+			{
+				cout << "Not marked!" << endl;
+			}
+		}
+		else
+		{
+			cout << "Invalid command! Enter a new one!" << endl;
+			continue;
+		}
+
+		if (openedPlaces == winCondition)
+		{
+			cout << "You won!" << endl;
+			isGameStillOn = false;
+
+			printBoardWithMines(SizeOfBoard, revealedBoard, board);
+			break;
+		}
+
+		printBoard(SizeOfBoard, revealedBoard);
+	}
+}
